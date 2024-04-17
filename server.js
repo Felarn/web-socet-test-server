@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const port = 8080;
 const games = {};
-
+let maxID = 0;
 let wss = new WebSocketServer({ port });
 console.log(`server started on port ${port}`);
 
@@ -35,7 +35,9 @@ wss.on("connection", function connection(connection) {
       }
       case "newGame": {
         const host = clientState.playerName;
-        const newID = uuidv4();
+        // const newID = uuidv4();
+        const newID = maxID+1;
+        maxID+=1;
         ID = newID;
         games[newID] = new Game(newID, host);
         break;
@@ -43,7 +45,14 @@ wss.on("connection", function connection(connection) {
     }
 
     console.log(ID);
-    console.log(games);
+    console.log(games[ID]);
+    if (games[ID]){
+      console.log(games[ID].players);
+      connection.send('users'+JSON.stringify(Array.from(games[ID].players)));
+
+    }
+    console.log('sending message'+JSON.stringify(games[ID],null,' '))
+    connection.send(JSON.stringify(games[ID],null,' '));
   });
 
   connection.on("close", function close() {
@@ -58,7 +67,6 @@ wss.on("connection", function connection(connection) {
     }
   });
 
-  // ws.send("Hello, client! Welcome to the WebSocket server!");
   // setInterval(() => {
   //   ws.send("spam");
   // }, 2000);
