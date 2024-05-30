@@ -1,4 +1,4 @@
-import Lobby from "./lobby.js";
+import Game from "./lobby.js";
 import Player from "./player.js";
 
 export default class Router {
@@ -33,10 +33,9 @@ export default class Router {
     const host = this.player;
     // const newID = uuidv4();
     const newID = this.games.maxID + 1;
-
     this.games.maxID += 1;
     this.gameID = newID;
-    this.game = new Lobby(newID, host);
+    this.game = new Game(newID, host);
     this.games[this.game.ID] = this.game;
     this.printGames();
   }
@@ -81,5 +80,15 @@ export default class Router {
     // console.log("Games:" + JSON.stringify(this.games));
     console.log("Games:");
     console.log(this.games);
+  }
+
+  startGame(){
+  }
+
+  setColor(){}
+
+  turn(){
+    console.log('turn');
+    this.game.sendObjToAll(this.clientState) // переделать, пересылка опирается на state.action === 'turn', присланный клиентом
   }
 }

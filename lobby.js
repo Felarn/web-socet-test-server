@@ -7,6 +7,7 @@ export default class Lobby {
     this.players = [];
     // this.players = new PlayerList();
     this.addPlayer(host);
+    this.isStarted = false;
   }
 
   // ____ манипуляции со списком игроков в лобби _______________
