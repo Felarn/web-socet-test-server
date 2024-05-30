@@ -1,4 +1,5 @@
-import Game from "./game.js";
+import Lobby from "./lobby.js";
+import Player from "./player.js";
 
 export default class Router {
   constructor(ws, games) {
@@ -7,62 +8,78 @@ export default class Router {
     this.game = null;
     this.gameID = null;
     this.clientState = {};
+    this.player = new Player("anon", ws);
   }
+
   actOn(message) {
     this.clientState = JSON.parse(message);
-    console.log("Received: ", this.clientState);
-    this[this.clientState.action]();
-
-    console.log(this.gameID);
-    console.log(this.games[this.gameID]);
-    if (this.games[this.gameID]) {
-      console.log(this.games[this.gameID].players);
-      this.ws.send(
-        "users" + JSON.stringify(Array.from(this.games[this.gameID].players))
-      );
+    console.log("\x1b[36m" + "Received: ", this.clientState);
+    try {
+      this[this.clientState.action]();
+    } catch (e) {
+      console.log(e);
     }
-    console.log(
-      "sending message" + JSON.stringify(this.games[this.gameID], null, " ")
-    );
-    this.ws.send(JSON.stringify(this.games[this.gameID], null, " "));
+    this.game &&
+      console.log(
+        "game ID:" + this.gameID + "| players: " + this.game.listNames()
+      );
   }
 
   none() {}
 
+  newGame() {
+    this.leave();
+    this.player.rename(this.clientState.playerName);
+    const host = this.player;
+    // const newID = uuidv4();
+    const newID = this.games.maxID + 1;
+
+    this.games.maxID += 1;
+    this.gameID = newID;
+    this.game = new Lobby(newID, host);
+    this.games[this.game.ID] = this.game;
+    this.printGames();
+  }
+
   join() {
     this.leave();
-    this.gameID = this.clientState.gameID;
-    this.playerName = this.clientState.playerName;
+    const joinToID = this.clientState.gameID;
+    const playerName = this.clientState.playerName;
 
-    if (this.gameID in this.games) {
+    if (joinToID in this.games && !this.games[joinToID].hasPlayer(playerName)) {
       try {
+        this.gameID = joinToID;
         this.game = this.games[this.gameID];
-        this.game.addPlayer(this.clientState.playerName);
+        this.game.addPlayer(this.player);
+        this.player.rename(playerName);
+        this.printGames();
       } catch (e) {
         console.log(e);
       }
     }
   }
 
-  newGame() {
-    this.leave();
-    this.playerName = this.clientState.playerName;
-    const host = this.clientState.playerName;
-    // const newID = uuidv4();
-    const newID = this.games.maxID + 1;
-
-    this.games.maxID += 1;
-    this.gameID = newID;
-    this.game = new Game(newID, host);
-    this.games[this.game.ID] = this.game;
-  }
-
   leave() {
-    console.log(`${this.playerName} disconnected`);
-    if (this.gameID) {
+    console.log(`${this.player.name} left game`);
+    if (this.gameID !== null) {
       this.gameID = null;
-      this.game.deletePlayer(this.playerName);
+      console.log(this.game);
+      this.game.deletePlayer(this.player);
       this.game = null;
     }
+    this.printGames();
+    // console.log(this.games);
+  }
+
+  chat() {
+    const text = `${this.player.name}: ${this.clientState.chatMessage}`;
+    console.log(text);
+    this.game.sendTextToAll(text);
+  }
+
+  printGames() {
+    // console.log("Games:" + JSON.stringify(this.games));
+    console.log("Games:");
+    console.log(this.games);
   }
 }
